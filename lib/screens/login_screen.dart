@@ -4,6 +4,7 @@ import '../utils/validators.dart';
 import '../widgets/app_text_field.dart';
 import '../widgets/social_button.dart';
 import 'registrasi_screen.dart';
+import 'splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,24 +30,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    // Sembunyikan keyboard dulu supaya SnackBar/error kelihatan jelas.
     FocusScope.of(context).unfocus();
 
+    // Validasi semua field. Kalau ada yang salah, Form otomatis
+    // menampilkan pesan error di bawah masing-masing field (human error
+    // handling) dan proses login dihentikan di sini.
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
+    // Cegah submit dobel kalau user tap tombol berkali-kali.
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
 
     try {
+      // TODO: ganti simulasi ini dengan pemanggilan API/Firebase asli.
       await Future.delayed(const Duration(milliseconds: 900));
+
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Berhasil masuk sebagai ${_emailController.text.trim()}'),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-        ),
+      // Login sukses -> bersihkan seluruh stack navigasi (kalau ada sisa
+      // dari flow Registrasi/Lengkapi Profil) lalu masuk ke Splash.
+      // Dari Splash nanti otomatis lanjut ke Dashboard.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SplashScreen()),
+        (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
@@ -74,6 +82,8 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: GestureDetector(
+          // Tap di luar field -> tutup keyboard. Ini kecil tapi sering
+          // dianggap "human error" kalau nggak ada (keyboard nutupin tombol).
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -118,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// Logo bulat dengan icon lari + badge kecil "RUN" di pojok kanan bawah.
   Widget _buildLogo() {
     return SizedBox(
       width: 84,
@@ -176,6 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// Badge kecil "⚡ OBSESS RUNNING".
   Widget _buildRunningBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -202,6 +214,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  /// Kartu putih berisi form login.
   Widget _buildFormCard() {
     return Container(
       width: double.infinity,
@@ -250,7 +263,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  // TODO: arahkan ke halaman lupa password.
+                },
                 child: const Text(
                   'Lupa Password?',
                   style: TextStyle(
@@ -372,7 +387,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Google',
                   icon: Icons.g_mobiledata_rounded,
                   iconColor: const Color(0xFFEA4335),
-                  onTap: () {},
+                  onTap: () {
+                    // TODO: integrasi Google Sign-In.
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -381,7 +398,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Apple',
                   icon: Icons.apple_rounded,
                   iconColor: AppColors.textPrimary,
-                  onTap: () {},
+                  onTap: () {
+                    // TODO: integrasi Sign in with Apple.
+                  },
                 ),
               ),
             ],

@@ -19,8 +19,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _goToDashboardAfterDelay() async {
-    // TODO: ganti delay simulasi ini dengan proses asli (misalnya fetch
-    // data user/rute lari dari server) sebelum masuk ke Dashboard.
     await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
 
