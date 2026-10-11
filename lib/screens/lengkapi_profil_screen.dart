@@ -14,12 +14,12 @@ class LengkapiProfilScreen extends StatefulWidget {
 class _LengkapiProfilScreenState extends State<LengkapiProfilScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _usiaController = TextEditingController(text: '23');
-  final _tinggiController = TextEditingController(text: '180');
-  final _beratController = TextEditingController(text: '75');
-  final _targetBeratController = TextEditingController(text: '60');
+final _usiaController = TextEditingController();
+final _tinggiController = TextEditingController();
+final _beratController = TextEditingController();
+final _targetBeratController = TextEditingController();
 
-  String _jenisKelamin = 'Laki-Laki';
+String _jenisKelamin = '';
   bool _isSubmitting = false;
 
   BmiResult _bmi = const BmiResult(value: 0, category: '-', color: Colors.grey);

@@ -88,7 +88,6 @@ class _RegistrasiScreenState extends State<RegistrasiScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Form(
               key: _formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -277,7 +276,6 @@ class _RegistrasiScreenState extends State<RegistrasiScreen> {
           obscureText: _obscurePassword,
           textInputAction: TextInputAction.next,
           validator: Validators.password,
-          onChanged: (_) => _formKey.currentState?.validate(),
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePassword

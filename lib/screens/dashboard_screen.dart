@@ -1,121 +1,81 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../widgets/weight_sparkline.dart';
+import '../theme/fit_colors.dart';
+import '../widgets/app_bottom_nav.dart';
+import '../widgets/weight_trend_chart.dart';
+import 'notifikasi_screen.dart';
 
-enum _WorkoutStatus { done, next, later }
+enum _TaskState { done, upcoming, later }
 
-class _WorkoutItem {
-  const _WorkoutItem({
-    required this.title,
-    required this.time,
-    required this.status,
-  });
+class _Task {
+  const _Task(this.title, this.time, this.state);
 
   final String title;
   final String time;
-  final _WorkoutStatus status;
+  final _TaskState state;
 }
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  // TODO: ganti semua data statis di bawah ini dengan data asli dari
-  // backend/local storage (nama user, progress latihan, berat badan, dll).
-  static const _userName = 'Robit';
-  static const _streakDays = 5;
-  static const _stepsNow = 1000;
-  static const _stepsTarget = 10000;
-  static const _caloriesNow = 1000;
-  static const _caloriesTarget = 10000;
-  static const _weightNow = 90.5;
-  static const _weightTarget = 75.0;
-  static const _weightHistory = [92.0, 91.2, 90.5];
+  // TODO: ganti semua data statis di bawah dengan data dari backend.
+  static const String _userName = 'Robit';
+  static const int _streakDays = 10;
+  static const int _steps = 1000;
+  static const int _stepsTarget = 10000;
+  static const int _calories = 1000;
+  static const int _caloriesTarget = 10000;
+  static const double _weightNow = 90.5;
+  static const double _weightLastWeek = 92.0;
+  static const double _weightTarget = 75;
 
-  static const _workouts = [
-    _WorkoutItem(
-      title: 'Jalan 20 menit',
-      time: 'Hari ini, 07.00',
-      status: _WorkoutStatus.done,
-    ),
-    _WorkoutItem(
-      title: 'Berlari 30 menit',
-      time: 'Hari ini, 09.00',
-      status: _WorkoutStatus.next,
-    ),
-    _WorkoutItem(
-      title: 'Pull Up 15 repetisi',
-      time: 'Hari ini, 15.00',
-      status: _WorkoutStatus.later,
-    ),
+  static const List<_Task> _tasks = [
+    _Task('Jalan 30 menit', 'Hari ini, 07.00', _TaskState.done),
+    _Task('Berlari 30 menit', 'Hari ini, 10.00', _TaskState.upcoming),
+    _Task('Push up 50 reps', 'Hari ini, 15.00', _TaskState.later),
   ];
+
+  static String _kg(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
+
+  static String _thousands(int value) {
+    final s = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      final fromEnd = s.length - i;
+      buffer.write(s[i]);
+      if (fromEnd > 1 && fromEnd % 3 == 1) buffer.write('.');
+    }
+    return buffer.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selesai =
-        _workouts.where((w) => w.status == _WorkoutStatus.done).length;
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: FitColors.bg,
       body: SafeArea(
         child: Stack(
           children: [
             SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 16),
-                  _buildFocusCard(),
-                  const SizedBox(height: 16),
-                  _buildWorkoutCard(selesai),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          label: 'Langkah',
-                          icon: Icons.directions_walk_rounded,
-                          iconColor: AppColors.primary,
-                          iconBg: AppColors.badgeBg,
-                          value: _stepsNow.toString(),
-                          target: 'Target ${_formatNumber(_stepsTarget)}',
-                          progress: _stepsNow / _stepsTarget,
-                          progressColor: AppColors.primary,
-                          footerText:
-                              '${((_stepsNow / _stepsTarget) * 100).round()}% tercapai',
-                          footerIcon: Icons.trending_up_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          label: 'Kalori',
-                          icon: Icons.local_fire_department_rounded,
-                          iconColor: const Color(0xFFE0A32E),
-                          iconBg: const Color(0xFFFCEFDB),
-                          value: _caloriesNow.toString(),
-                          target:
-                              'Target ${_formatNumber(_caloriesTarget)} kkal',
-                          progress: _caloriesNow / _caloriesTarget,
-                          progressColor: const Color(0xFFE0A32E),
-                          footerText:
-                              '${((_caloriesNow / _caloriesTarget) * 100).round()}% terbakar',
-                          footerIcon: Icons.bolt_rounded,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
+                  _buildHeroCard(context),
+                  const SizedBox(height: 24),
+                  _buildWorkoutSection(context),
+                  const SizedBox(height: 24),
+                  _buildStatsGrid(),
+                  const SizedBox(height: 24),
                   _buildWeightCard(),
                 ],
               ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomNav(),
+            const Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: AppBottomNav(current: AppTab.home),
             ),
           ],
         ),
@@ -123,21 +83,11 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  static String _formatNumber(int value) {
-    final s = value.toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      final posFromEnd = s.length - i;
-      buffer.write(s[i]);
-      if (posFromEnd > 1 && posFromEnd % 3 == 1) buffer.write('.');
-    }
-    return buffer.toString();
-  }
+  // ---------------------------------------------------------------- Header
 
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
@@ -147,43 +97,49 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Hai, $_userName',
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: fitText(24, FontWeight.w800, FitColors.slate900,
+                        letterSpacing: -0.4),
                   ),
-                  const SizedBox(width: 4),
-                  const Text('👋', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 6),
+                  const Text('👋', style: TextStyle(fontSize: 22)),
                 ],
               ),
               const SizedBox(height: 2),
-              const Text(
-                'Semangat jaga kesehatan hari ini!',
-                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              Text(
+                'Semangat jaga kesehatan!',
+                style: fitText(12, FontWeight.w500, FitColors.slate500),
               ),
             ],
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFFCEFDB),
-            borderRadius: BorderRadius.circular(16),
+            color: const Color(0x1AF59E0B),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: const Color(0x40F59E0B)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.local_fire_department_rounded,
-                  size: 14, color: Color(0xFFE0A32E)),
-              const SizedBox(width: 3),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomLeft,
+                    end: Alignment.topRight,
+                    colors: [Color(0xFFF97316), FitColors.amber300],
+                  ),
+                ),
+                child: const Icon(Icons.local_fire_department_rounded,
+                    size: 14, color: Colors.white),
+              ),
+              const SizedBox(width: 6),
               Text(
                 '$_streakDays Hari',
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFB9791C),
-                ),
+                style: fitText(12, FontWeight.w700, FitColors.amber700),
               ),
             ],
           ),
@@ -192,215 +148,383 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFocusCard() {
+  // ------------------------------------------------------------- Hero card
+
+  Widget _glow(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(colors: [color, color.withOpacity(0)]),
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0B5A9E), Color(0xFF1E7FCC)],
+          colors: [FitColors.blue600, FitColors.blue700],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: FitColors.glowBlue,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'FOKUS PAGI',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Siap capai 5 km pertamamu?',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -24,
+              bottom: -32,
+              child: _glow(150, const Color(0x4022D3EE)),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWorkoutCard(int selesai) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+            Positioned(
+              right: 48,
+              top: 4,
+              child: _glow(84, const Color(0x26FFFFFF)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
                 children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: const BoxDecoration(
-                      color: AppColors.badgeBg,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.insights_rounded,
-                        size: 15, color: AppColors.primary),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0x33FFFFFF),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: const Color(0x33FFFFFF)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: FitColors.cyan300,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'FOKUS PAGI',
+                                      style: fitText(
+                                          10, FontWeight.w700, FitColors.blue100,
+                                          letterSpacing: 0.8),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Bersiap capai 5KM Pertamamu!',
+                                style: fitText(
+                                    18, FontWeight.w800, Colors.white,
+                                    height: 1.3, letterSpacing: -0.2),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Lakukan pemanasan 5 menit sebelum start.',
+                                style: fitText(
+                                    12, FontWeight.w500, const Color(0xE6DBEAFE)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const NotifikasiScreen(),
+                            ),
+                          );
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color(0x26FFFFFF),
+                                borderRadius: BorderRadius.circular(16),
+                                border:
+                                    Border.all(color: const Color(0x33FFFFFF)),
+                              ),
+                              child: const Icon(
+                                Icons.notifications_active_rounded,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: FitColors.coral,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: FitColors.blue700, width: 2),
+                                ),
+                                child: Text(
+                                  '+89',
+                                  style: fitText(
+                                      9, FontWeight.w800, Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Latihan Hari Ini',
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                  const SizedBox(height: 16),
+                  Container(height: 1, color: const Color(0x26FFFFFF)),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.bolt_rounded,
+                                size: 16, color: FitColors.amber300),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'Ritme Optimal: 6\'20" /km',
+                                overflow: TextOverflow.ellipsis,
+                                style: fitText(12, FontWeight.w600,
+                                    const Color(0xE6FFFFFF)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // TODO: sambungkan "Mulai" ke halaman Tracking.
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Mulai',
+                            style: fitText(
+                                11, FontWeight.w700, FitColors.cyan200),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_rounded,
+                              size: 13, color: FitColors.cyan200),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.badgeBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  '$selesai/${_workouts.length} Selesai',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          for (var i = 0; i < _workouts.length; i++) ...[
-            _buildWorkoutTile(_workouts[i]),
-            if (i != _workouts.length - 1) const SizedBox(height: 10),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildWorkoutTile(_WorkoutItem item) {
-    final isDone = item.status == _WorkoutStatus.done;
-    final isNext = item.status == _WorkoutStatus.next;
+  // -------------------------------------------------------- Latihan hari ini
 
-    String badgeText;
-    Color badgeBg;
-    Color badgeColor;
-    switch (item.status) {
-      case _WorkoutStatus.done:
-        badgeText = 'Tuntas';
-        badgeBg = AppColors.badgeBg;
-        badgeColor = AppColors.primary;
-        break;
-      case _WorkoutStatus.next:
-        badgeText = 'Berikutnya';
-        badgeBg = AppColors.badgeBg;
-        badgeColor = AppColors.primary;
-        break;
-      case _WorkoutStatus.later:
-        badgeText = 'Nanti';
-        badgeBg = const Color(0xFFF1F2F6);
-        badgeColor = AppColors.textSecondary;
-        break;
-    }
+  Widget _buildWorkoutSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: FitColors.blue100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.fitness_center_rounded,
+                      size: 16, color: FitColors.electric),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Latihan Hari ini',
+                  style: fitText(16, FontWeight.w700, FitColors.slate800,
+                      letterSpacing: -0.2),
+                ),
+              ],
+            ),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => goToTab(context, AppTab.jadwal, from: AppTab.home),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  'Semua',
+                  style: fitText(12, FontWeight.w600, FitColors.electric),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        for (var i = 0; i < _tasks.length; i++) ...[
+          _buildTaskCard(_tasks[i]),
+          if (i != _tasks.length - 1) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTaskCard(_Task t) {
+    final isDone = t.state == _TaskState.done;
+    final isUpcoming = t.state == _TaskState.upcoming;
+
+    final Color border = isDone ? FitColors.emerald100 : FitColors.slate100;
+    final Color iconBg = isDone
+        ? const Color(0x1A10B981)
+        : (isUpcoming ? FitColors.blue50 : FitColors.slate100);
+    final Color iconColor = isDone
+        ? FitColors.emerald600
+        : (isUpcoming ? FitColors.electric : FitColors.slate500);
+    final IconData icon = isDone
+        ? Icons.check_circle_rounded
+        : (isUpcoming ? Icons.directions_run_rounded : Icons.timer_outlined);
+    final Color titleColor = isDone || isUpcoming
+        ? FitColors.slate800
+        : FitColors.slate700;
+
+    final String pill =
+        isDone ? 'Tuntas' : (isUpcoming ? 'Nanti' : 'Besok');
+    final Color pillBg = isDone
+        ? FitColors.emerald100
+        : (isUpcoming ? FitColors.blue50 : FitColors.slate100);
+    final Color pillText = isDone
+        ? FitColors.emerald700
+        : (isUpcoming ? FitColors.electric : FitColors.slate500);
+    final Color pillBorder = isDone
+        ? FitColors.emerald200
+        : (isUpcoming ? FitColors.blue100 : FitColors.slate200);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.fieldFill.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(14),
+        color: t.state == _TaskState.later
+            ? Colors.white.withOpacity(0.7)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+        boxShadow: FitColors.cardShadow,
       ),
       child: Row(
         children: [
           Container(
-            width: 26,
-            height: 26,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDone ? AppColors.primary : Colors.white,
-              border: Border.all(
-                color: isDone ? AppColors.primary : AppColors.divider,
-                width: 1.4,
-              ),
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: isDone
-                ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
-                : null,
+            child: Icon(icon, size: 22, color: iconColor),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isNext || isDone
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
-                  ),
-                ),
+                Text(t.title,
+                    style: fitText(14, FontWeight.w700, titleColor)),
                 const SizedBox(height: 2),
-                Text(
-                  item.time,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textSecondary),
-                ),
+                Text(t.time,
+                    style: fitText(12, FontWeight.w500, FitColors.slate400)),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: badgeBg,
-              borderRadius: BorderRadius.circular(12),
+              color: pillBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: pillBorder),
             ),
-            child: Text(
-              badgeText,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                color: badgeColor,
-              ),
-            ),
+            child: Text(pill, style: fitText(12, FontWeight.w700, pillText)),
           ),
         ],
       ),
+    );
+  }
+
+  // ------------------------------------------------------------ Langkah/Kalori
+
+  Widget _buildStatsGrid() {
+    final stepsPct = (_steps * 100 / _stepsTarget).round();
+    final calPct = (_calories * 100 / _caloriesTarget).round();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            label: 'Langkah',
+            icon: Icons.directions_walk_rounded,
+            iconColor: FitColors.emerald600,
+            iconBg: const Color(0x1A10B981),
+            chipText: '$stepsPct%',
+            chipColor: FitColors.emerald600,
+            chipBg: FitColors.emerald100,
+            value: _thousands(_steps),
+            target: 'Target ${_thousands(_stepsTarget)}',
+            progress: _steps / _stepsTarget,
+            track: const Color(0xCCD1FAE5),
+            fill: const [FitColors.emerald500, FitColors.emerald500],
+            tint: const Color(0xFFF7FEFB),
+            border: const Color(0xCCD1FAE5),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _buildStatCard(
+            label: 'Kalori',
+            icon: Icons.local_fire_department_rounded,
+            iconColor: FitColors.coral,
+            iconBg: const Color(0x1AFF5733),
+            chipText: '$calPct%',
+            chipColor: FitColors.coral,
+            chipBg: FitColors.orange100,
+            value: _thousands(_calories),
+            target: 'Target ${_thousands(_caloriesTarget)} kkal',
+            progress: _calories / _caloriesTarget,
+            track: const Color(0xCCFFEDD5),
+            fill: const [FitColors.coral, FitColors.amber500],
+            tint: const Color(0xFFFFFCF8),
+            border: const Color(0xCCFFEDD5),
+          ),
+        ),
+      ],
     );
   }
 
@@ -409,291 +533,230 @@ class DashboardScreen extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required Color iconBg,
+    required String chipText,
+    required Color chipColor,
+    required Color chipBg,
     required String value,
     required String target,
     required double progress,
-    required Color progressColor,
-    required String footerText,
-    required IconData footerIcon,
+    required Color track,
+    required List<Color> fill,
+    required Color tint,
+    required Color border,
   }) {
-    final clampedProgress = progress.clamp(0.0, 1.0);
+    final factor = progress.clamp(0.0, 1.0).toDouble();
+
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, tint],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: border),
+        boxShadow: FitColors.cardShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                    fontSize: 12.5, color: AppColors.textSecondary),
-              ),
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-                child: Icon(icon, size: 14, color: iconColor),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          Text(
-            target,
-            style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: clampedProgress,
-              minHeight: 6,
-              backgroundColor: AppColors.divider,
-              color: progressColor,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                footerText,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: progressColor,
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: iconBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, size: 18, color: iconColor),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        label,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            fitText(12, FontWeight.w700, FitColors.slate600),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 3),
-              Icon(footerIcon, size: 11, color: progressColor),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: chipBg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(chipText,
+                    style: fitText(10, FontWeight.w700, chipColor)),
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: fitText(24, FontWeight.w900, FitColors.slate900,
+                letterSpacing: -0.4),
+          ),
+          Text(target,
+              style: fitText(11, FontWeight.w500, FitColors.slate400)),
+          const SizedBox(height: 10),
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: track,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: factor,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: fill),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ------------------------------------------------------------ Berat badan
+
   Widget _buildWeightCard() {
-    final selisih = _weightHistory.length >= 2
-        ? _weightHistory.last - _weightHistory[_weightHistory.length - 2]
-        : 0.0;
+    final delta = _weightNow - _weightLastWeek;
+    final sign = delta < 0 ? '-' : '+';
+    final deltaText = '$sign${_kg(delta.abs())} kg minggu ini';
+    final trendIcon =
+        delta <= 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: FitColors.slate100),
+        boxShadow: FitColors.cardShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: const BoxDecoration(
-                  color: AppColors.badgeBg,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.monitor_weight_outlined,
-                    size: 16, color: AppColors.primary),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Berat Badan',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'Pantauan mingguan',
-                      style: TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFCEFDB),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Target ${_weightTarget.toStringAsFixed(0)} kg',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFB9791C),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _weightNow.toStringAsFixed(1).replaceAll('.', ','),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 4, left: 3),
-                child: Text('kg',
-                    style: TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary)),
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.badgeBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${selisih <= 0 ? '↘' : '↗'} ${selisih.abs().toStringAsFixed(1).replaceAll('.', ',')} kg minggu ini',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          WeightSparkline(values: _weightHistory),
-          const SizedBox(height: 4),
-          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '1 minggu lalu (${_weightHistory.first.toStringAsFixed(1).replaceAll('.', ',')} kg)',
-                style: const TextStyle(
-                    fontSize: 9.5, color: AppColors.textSecondary),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: FitColors.electric,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'BERAT BADAN',
+                        style: fitText(12, FontWeight.w700, FitColors.slate500,
+                            letterSpacing: 0.8),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        _kg(_weightNow),
+                        style: fitText(24, FontWeight.w900, FitColors.slate900,
+                            letterSpacing: -0.4),
+                      ),
+                      const SizedBox(width: 6),
+                      Text('kg',
+                          style: fitText(
+                              12, FontWeight.w700, FitColors.slate400)),
+                    ],
+                  ),
+                ],
               ),
-              const Text(
-                '3 hari lalu',
-                style: TextStyle(fontSize: 9.5, color: AppColors.textSecondary),
-              ),
-              Text(
-                'Sekarang (${_weightHistory.last.toStringAsFixed(1).replaceAll('.', ',')} kg)',
-                style: const TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: FitColors.emerald50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0x99A7F3D0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(trendIcon, size: 13, color: FitColors.emerald600),
+                        const SizedBox(width: 4),
+                        Text(
+                          deltaText,
+                          style: fitText(
+                              12, FontWeight.w700, FitColors.emerald600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Target ${_weightTarget.toStringAsFixed(0)} kg',
+                    style: fitText(11, FontWeight.w500, FitColors.slate400),
+                  ),
+                ],
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(height: 1, color: FitColors.slate50),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6),
+            child: WeightTrendChart(),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '1 minggu lalu (${_kg(_weightLastWeek)} kg)',
+                  style: fitText(11, FontWeight.w500, FitColors.slate400),
+                ),
+                Text(
+                  'Sekarang',
+                  style: fitText(11, FontWeight.w700, FitColors.slate800),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
-  }
-
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 14,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: SizedBox(
-        height: 66,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.topCenter,
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _navIcon(Icons.calendar_today_outlined),
-                    _navIcon(Icons.bar_chart_rounded),
-                    const SizedBox(width: 46),
-                    _navIcon(Icons.notifications_none_rounded),
-                    _navIcon(Icons.person_outline_rounded),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              top: -6,
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.background, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.directions_run_rounded,
-                    color: Colors.white, size: 24),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navIcon(IconData icon) {
-    // TODO: sambungkan tiap icon ini ke halaman/tab masing-masing
-    // (Jadwal, Statistik, Notifikasi, Profil) begitu halamannya ada.
-    return Icon(icon, size: 22, color: AppColors.textSecondary);
   }
 }
